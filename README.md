@@ -1,4 +1,8 @@
-# pi-marketplace
+# 🛒 pi-marketplace
+
+[![npm version](https://img.shields.io/npm/v/pi-marketplace.svg)](https://www.npmjs.com/package/pi-marketplace)
+[![license](https://img.shields.io/npm/l/pi-marketplace.svg)](https://github.com/ssdiwu/pi-marketplace/blob/main/LICENSE)
+[![install size](https://packagephobia.now.sh/badge?p=pi-marketplace)](https://packagephobia.now.sh/result?p=pi-marketplace)
 
 Pi extension for **searching, auditing, and installing** pi packages from npm — with built-in security review and optional pi.dev enrichment.
 
