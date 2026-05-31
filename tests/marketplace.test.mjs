@@ -1,7 +1,7 @@
 import test, { after, before } from 'node:test';
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
-import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { tmpdir } from 'node:os';
 import { pathToFileURL } from 'node:url';
@@ -61,6 +61,26 @@ test('fetchPiDevPackages enriches search metadata from pi.dev', async () => {
   assert.match(target.timeAgo, /^(?:today|\d+[hdw] ago|\d+mo ago)$/);
   assert.ok(target.types.includes('extension'));
   assert.equal(target.installCmd, 'pi install npm:pi-mcp-adapter');
+});
+
+test('parsePiDevHtml parses rich metadata from pi.dev fixture HTML', () => {
+  const html = readFileSync(resolve('tests/fixtures/pi-dev-packages.html'), 'utf8');
+  const packages = enrich.parsePiDevHtml(html);
+  const adapter = packages.find((pkg) => pkg.name === 'pi-mcp-adapter');
+  const contextMode = packages.find((pkg) => pkg.name === 'context-mode');
+
+  assert.equal(packages.length, 2);
+  assert.ok(adapter, 'expected pi-mcp-adapter from fixture');
+  assert.equal(adapter.author, 'nicopreme');
+  assert.equal(adapter.downloads, '98.3K/mo');
+  assert.equal(adapter.timeAgo, '6d ago');
+  assert.deepEqual(adapter.types, ['extension']);
+  assert.equal(adapter.installCmd, 'pi install npm:pi-mcp-adapter');
+  assert.equal(adapter.piDevUrl, 'https://pi.dev/packages/pi-mcp-adapter');
+
+  assert.ok(contextMode, 'expected context-mode from fixture');
+  assert.deepEqual(contextMode.types, ['skill', 'extension']);
+  assert.equal(contextMode.installCmd, 'pi install npm:context-mode');
 });
 
 test('sourceScan scans dist output files', async () => {
