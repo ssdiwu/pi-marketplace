@@ -10,7 +10,13 @@ import type { AuditReport } from "./security.js";
 // ---------------------------------------------------------------------------
 
 export function formatSearchResults(
-  packages: Array<NpmSearchResult & { types?: PackageType[]; piDevUrl?: string }>,
+  packages: Array<NpmSearchResult & {
+    types?: PackageType[];
+    piDevUrl?: string;
+    piDevAuthor?: string;
+    piDevDownloads?: string;
+    piDevTimeAgo?: string;
+  }>,
 ): string {
   if (packages.length === 0) return "No pi packages found. Try different keywords.";
 
@@ -20,10 +26,14 @@ export function formatSearchResults(
   for (const pkg of packages) {
     const types = pkg.types?.length ? `[${pkg.types.join(", ")}]` : "";
     const desc = truncate(pkg.description || "(no description)", 70);
-    const dl = formatDownloads(pkg.downloads.monthly);
-    lines.push(`📦 **${pkg.name}** ${types}`);
+    const downloads = pkg.piDevDownloads || withMonthlySuffix(formatDownloads(pkg.downloads.monthly));
+    const meta = [downloads ? `⬇️ ${downloads}` : "", pkg.piDevAuthor ? `👤 ${pkg.piDevAuthor}` : "", pkg.piDevTimeAgo ? `🕒 ${pkg.piDevTimeAgo}` : ""]
+      .filter(Boolean)
+      .join("  ");
+
+    lines.push(`📦 **${pkg.name}** ${types}`.trim());
     lines.push(`   v${pkg.version}  ${desc}`);
-    if (dl) lines.push(`   ⬇️ ${dl}/mo`);
+    if (meta) lines.push(`   ${meta}`);
     lines.push(`   Install: \`pi install npm:${pkg.name}\``);
     if (pkg.piDevUrl) lines.push(`   Gallery: ${pkg.piDevUrl}`);
     else lines.push(`   Gallery: https://pi.dev/packages/${encodeURIComponent(pkg.name)}`);
@@ -148,7 +158,11 @@ function truncate(value: string, maxLen: number): string {
 function formatDownloads(monthly: number): string {
   if (monthly >= 1000_000) return `${(monthly / 1000_000).toFixed(1)}M`;
   if (monthly >= 1000) return `${(monthly / 1000).toFixed(1)}K`;
-  return String(monthly);
+  return monthly > 0 ? String(monthly) : "";
+}
+
+function withMonthlySuffix(value: string): string {
+  return value ? `${value}/mo` : "";
 }
 
 function formatSize(bytes: number): string {

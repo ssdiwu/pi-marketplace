@@ -1,67 +1,40 @@
 // ---------------------------------------------------------------------------
-// pi.dev Enrichment — HTML parsing + web fetch tool detection
+// pi.dev enrichment — fetch package cards and merge metadata
 // ---------------------------------------------------------------------------
 
 import type { NpmSearchResult, PackageType } from "./api.js";
-
-// ---------------------------------------------------------------------------
-// Types
-// ---------------------------------------------------------------------------
 
 export interface PiDevPackage {
   name: string;
   description: string;
   author: string;
-  downloads: string; // e.g. "94.6K/mo"
-  timeAgo: string;   // e.g. "3d ago"
+  downloads: string;
+  timeAgo: string;
   types: PackageType[];
   installCmd: string;
+  piDevUrl: string;
 }
 
-// ---------------------------------------------------------------------------
-// Web Fetch Tool Detection
-// ---------------------------------------------------------------------------
-
-/**
- * Detect available web fetch tools from pi's registered tools.
- * Returns the name of a suitable tool, or null if none found.
- *
- * We look for tools that can render/fetch web pages:
- * - tinyfish_fetch
- * - web_fetch
- * - fetch
- * - Any tool with "fetch" in name or description
- */
-export function detectWebFetchTool(
-  allTools: Array<{ name: string; description?: string }>,
-): string | null {
-  // Priority order: known reliable tools first
-  const knownPatterns = [
-    /^tinyfish_fetch$/,
-    /^web_fetch$/,
-    /^fetch$/,
-  ];
-
-  // Check exact matches first
-  for (const tool of allTools) {
-    if (knownPatterns.some((p) => p.test(tool.name))) return tool.name;
-  }
-
-  // Fallback: any tool with "fetch" in name
-  const fetchTool = allTools.find((t) =>
-    /fetch/i.test(t.name) || /fetch/i.test(t.description ?? ""),
-  );
-  return fetchTool?.name ?? null;
+export interface EnrichedResult extends NpmSearchResult {
+  types: PackageType[];
+  piDevAuthor?: string;
+  piDevDownloads?: string;
+  piDevTimeAgo?: string;
+  piDevInstallCmd?: string;
+  piDevUrl: string;
 }
 
-// ---------------------------------------------------------------------------
-// pi.dev URL Builder
-// ---------------------------------------------------------------------------
+export async function fetchPiDevPackages(query: string): Promise<PiDevPackage[]> {
+  const res = await fetch(buildPiDevSearchUrl(query), {
+    headers: { Accept: "text/html,application/xhtml+xml" },
+  });
+  if (!res.ok) throw new Error(`pi.dev fetch failed: HTTP ${res.status}`);
+  return parsePiDevHtml(await res.text());
+}
 
-export function buildPiDevUrl(query: string, type?: PackageType): string {
+export function buildPiDevSearchUrl(query: string): string {
   const params = new URLSearchParams();
   params.set("name", query);
-  if (type) params.set("type", type);
   return `https://pi.dev/packages?${params.toString()}`;
 }
 
@@ -69,131 +42,133 @@ export function buildPiDevPackageUrl(packageName: string): string {
   return `https://pi.dev/packages/${encodeURIComponent(packageName)}`;
 }
 
-// ---------------------------------------------------------------------------
-// pi.dev HTML Parser
-// ---------------------------------------------------------------------------
-
-/**
- * Parse pi.dev/packages search results page HTML.
- * Extracts <article> elements containing package info.
- */
 export function parsePiDevHtml(html: string): PiDevPackage[] {
   const packages: PiDevPackage[] = [];
-
-  // Extract <article> blocks
-  const articleRegex = /<article>([\s\S]*?)<\/article>/g;
+  const articleRegex = /<article\b([^>]*)data-package-card="true"([^>]*)>([\s\S]*?)<\/article>/g;
   let match: RegExpExecArray | null;
 
   while ((match = articleRegex.exec(html)) !== null) {
-    const article = match[1];
-    const pkg = parseArticle(article);
-    if (pkg) packages.push(pkg);
+    const attrs = `${match[1] ?? ""} ${match[2] ?? ""}`;
+    const body = match[3] ?? "";
+    const parsed = parsePackageCard(attrs, body);
+    if (parsed) packages.push(parsed);
   }
 
   return packages;
 }
 
-function parseArticle(html: string): PiDevPackage | null {
-  // <h3>package-name</h3>
-  const h3Match = html.match(/<h3>([\s\S]*?)<\/h3>/);
-  const name = h3Match ? stripTags(h3Match[1]).trim() : "";
-  if (!name) return null;
-
-  // First <p> is description
-  const pMatches = html.matchAll(/<p>([\s\S]*?)<\/p>/g);
-  const paragraphs = Array.from(pMatches).map((m) => stripTags(m[1]).trim());
-  const description = paragraphs[0] ?? "";
-
-  // Second <p> contains: author downloads/mo time ago
-  const metaLine = paragraphs[1] ?? "";
-  const { author, downloads, timeAgo } = parseMetaLine(metaLine);
-
-  // Third <p> contains type tags
-  const typeStr = paragraphs[2] ?? "";
-  const types = parseTypeTags(typeStr);
-
-  // Install command in <code>
-  const codeMatch = html.match(/<code>\s*\$?\s*(pi install [\s\S]*?)\s*<\/code>/);
-  const installCmd = codeMatch ? stripTags(codeMatch[1]).trim() : `pi install npm:${name}`;
-
-  return { name, description, author, downloads, timeAgo, types, installCmd };
-}
-
-function parseMetaLine(line: string): { author: string; downloads: string; timeAgo: string } {
-  // Format: "authorName 94.6K/mo 3d ago"
-  const parts = line.split(/\s+/).filter(Boolean);
-  let author = "";
-  let downloads = "";
-  let timeAgo = "";
-
-  for (let i = 0; i < parts.length; i++) {
-    const part = parts[i]!;
-    if (/\/mo$/.test(part)) {
-      downloads = part;
-      if (i > 0) author = parts[i - 1]!;
-      if (i + 1 < parts.length && /\d+[dwmh] ago/.test(parts[i + 1]!)) {
-        timeAgo = parts[i + 1]!;
-      }
-      break;
-    }
-  }
-
-  // Fallback: if no downloads pattern found, treat entire line as author+time
-  if (!downloads) {
-    author = parts[0] ?? "";
-    timeAgo = parts[parts.length - 1] ?? "";
-  }
-
-  return { author, downloads, timeAgo };
-}
-
-function parseTypeTags(str: string): PackageType[] {
-  const types: PackageType[] = [];
-  const validTypes: PackageType[] = ["extension", "skill", "prompt", "theme"];
-  for (const t of validTypes) {
-    if (str.toLowerCase().includes(t)) types.push(t);
-  }
-  return types;
-}
-
-function stripTags(html: string): string {
-  return html.replace(/<[^>]+>/g, "").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&amp;/g, "&");
-}
-
-// ---------------------------------------------------------------------------
-// Merge npm results with pi.dev enrichment
-// ---------------------------------------------------------------------------
-
-export interface EnrichedResult extends NpmSearchResult {
-  types: PackageType[];
-  piDevAuthor?: string;
-  piDevDownloads?: string;
-  piDevTimeAgo?: string;
-  piDevUrl: string;
-}
-
-/**
- * Merge npm registry search results with pi.dev enrichment data.
- * Matches by package name (case-insensitive).
- */
 export function enrichResults(
-  npmResults: NpmSearchResult[],
+  npmResults: Array<NpmSearchResult & { types?: PackageType[]; piDevUrl?: string }>,
   piDevResults: PiDevPackage[],
 ): Array<EnrichedResult> {
-  const piDevMap = new Map<string, PiDevPackage>();
-  for (const pkg of piDevResults) {
-    piDevMap.set(pkg.name.toLowerCase(), pkg);
-  }
+  const piDevMap = new Map(piDevResults.map((pkg) => [pkg.name.toLowerCase(), pkg]));
 
   return npmResults.map((npmPkg) => {
     const devPkg = piDevMap.get(npmPkg.name.toLowerCase());
+    const existingTypes = npmPkg.types ?? [];
+
     return {
       ...npmPkg,
-      types: devPkg?.types ?? [],
+      types: existingTypes.length > 0 ? existingTypes : (devPkg?.types ?? []),
       piDevAuthor: devPkg?.author,
       piDevDownloads: devPkg?.downloads,
       piDevTimeAgo: devPkg?.timeAgo,
-      piDevUrl: buildPiDevPackageUrl(npmPkg.name),
+      piDevInstallCmd: devPkg?.installCmd,
+      piDevUrl: npmPkg.piDevUrl ?? devPkg?.piDevUrl ?? buildPiDevPackageUrl(npmPkg.name),
     };
   });
+}
+
+function parsePackageCard(attrs: string, body: string): PiDevPackage | null {
+  const name = decodeHtml(getAttr(attrs, "data-package-name") ?? "").trim();
+  if (!name) return null;
+
+  const description = extractText(body, /<p class="packages-desc">([\s\S]*?)<\/p>/);
+  const metaBlock = extractRaw(body, /<div class="packages-meta">([\s\S]*?)<\/div>/);
+  const metaItems = metaBlock
+    ? Array.from(metaBlock.matchAll(/<span>([\s\S]*?)<\/span>/g)).map((item) => cleanText(item[1] ?? ""))
+    : [];
+
+  const attrTypes = parseTypes(getAttr(attrs, "data-package-types") ?? "");
+  const badgeTypes = parseTypes(
+    Array.from(body.matchAll(/<span class="meta-chip packages-badge"[^>]*data-type="([^"]+)"/g))
+      .map((item) => item[1] ?? "")
+      .join(","),
+  );
+
+  const installCmd = decodeHtml(
+    getAttr(body, "data-copy-text") ??
+    extractText(body, /<code>([\s\S]*?)<\/code>/),
+  ).replace(/^\$\s*/, "").trim();
+
+  return {
+    name,
+    description,
+    author: metaItems[0] ?? "",
+    downloads: metaItems[1] ?? formatDownloads(Number(getAttr(attrs, "data-package-downloads") ?? 0)),
+    timeAgo: metaItems[2] ?? formatTimeAgo(Number(getAttr(attrs, "data-package-date") ?? 0)),
+    types: dedupeTypes([...attrTypes, ...badgeTypes]),
+    installCmd: installCmd || `pi install npm:${name}`,
+    piDevUrl: buildPiDevPackageUrl(name),
+  };
+}
+
+function parseTypes(value: string): PackageType[] {
+  const types = value
+    .split(/[,\s]+/)
+    .map((item) => item.trim().toLowerCase())
+    .filter(Boolean);
+
+  return dedupeTypes(types.filter(isPackageType));
+}
+
+function dedupeTypes(types: PackageType[]): PackageType[] {
+  return Array.from(new Set(types));
+}
+
+function isPackageType(value: string): value is PackageType {
+  return value === "extension" || value === "skill" || value === "prompt" || value === "theme";
+}
+
+function getAttr(source: string, name: string): string | undefined {
+  const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return source.match(new RegExp(`${escaped}="([^"]*)"`))?.[1];
+}
+
+function extractRaw(source: string, regex: RegExp): string | undefined {
+  return source.match(regex)?.[1];
+}
+
+function extractText(source: string, regex: RegExp): string {
+  return cleanText(extractRaw(source, regex) ?? "");
+}
+
+function cleanText(value: string): string {
+  return decodeHtml(value.replace(/<[^>]+>/g, " ")).replace(/\s+/g, " ").trim();
+}
+
+function decodeHtml(value: string): string {
+  return value
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&amp;/g, "&");
+}
+
+function formatDownloads(downloads: number): string {
+  if (!downloads || Number.isNaN(downloads)) return "";
+  if (downloads >= 1_000_000) return `${(downloads / 1_000_000).toFixed(1)}M/mo`;
+  if (downloads >= 1_000) return `${(downloads / 1_000).toFixed(1)}K/mo`;
+  return `${downloads}/mo`;
+}
+
+function formatTimeAgo(timestamp: number): string {
+  if (!timestamp || Number.isNaN(timestamp)) return "";
+  const diffMs = Date.now() - timestamp;
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+  if (diffDays < 1) return "today";
+  if (diffDays < 7) return `${diffDays}d ago`;
+  if (diffDays < 30) return `${Math.floor(diffDays / 7)}w ago`;
+  return `${Math.floor(diffDays / 30)}mo ago`;
 }

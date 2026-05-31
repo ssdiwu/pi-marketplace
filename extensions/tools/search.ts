@@ -5,6 +5,7 @@
 import { Type, Static, StringEnum } from "@earendil-works/pi-ai";
 import { searchPackages, getPkgPiManifest, inferPackageTypes } from "../api.js";
 import { formatSearchResults } from "../format.js";
+import { enrichResults, fetchPiDevPackages } from "../enrich.js";
 import type { NpmSearchResult, PackageType, PiManifest } from "../api.js";
 
 const Params = Type.Object({
@@ -44,9 +45,11 @@ export const marketplace_search = {
         };
       }
 
-      const enriched = params.type
+      const piDevResults = await fetchPiDevPackages(params.query).catch(() => []);
+      const searched = params.type
         ? await withTypeFilter(results, params.type)
         : withGalleryLinks(results);
+      const enriched = enrichResults(searched, piDevResults);
 
       if (enriched.length === 0) {
         return {
@@ -60,7 +63,12 @@ export const marketplace_search = {
 
       return {
         content: [{ type: "text" as const, text: formatSearchResults(enriched) }],
-        details: { resultCount: enriched.length, query: params.query, typeFilter: params.type ?? null },
+        details: {
+          resultCount: enriched.length,
+          query: params.query,
+          typeFilter: params.type ?? null,
+          piDevEnrichedCount: enriched.filter((pkg) => pkg.piDevAuthor || pkg.piDevDownloads || pkg.piDevTimeAgo).length,
+        },
       };
     } catch (error) {
       const msg = error instanceof Error ? error.message : String(error);

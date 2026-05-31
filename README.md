@@ -4,7 +4,7 @@
 [![license](https://img.shields.io/npm/l/pi-marketplace.svg)](https://github.com/ssdiwu/pi-marketplace/blob/main/LICENSE)
 [![install size](https://packagephobia.now.sh/badge?p=pi-marketplace)](https://packagephobia.now.sh/result?p=pi-marketplace)
 
-Pi extension for **searching, auditing, and installing** pi packages from npm — with built-in security review and pi.dev gallery links.
+Pi extension for **searching, auditing, and installing** pi packages from npm — with built-in security review and optional pi.dev enrichment.
 
 ## Features
 
@@ -55,7 +55,7 @@ Ask pi to find packages:
 
 1. **Search**: Queries npm registry with `keywords:pi-package`, filters by your query
 2. **Type filtering**: Fetches each result's `pi` manifest to determine resource type locally
-3. **Gallery links**: Adds a pi.dev package page link to each result for quick browsing
+3. **pi.dev enrichment** (optional): Fetches pi.dev package cards to add author, human-readable downloads, relative publish time, and richer type display when available
 4. **Security audit**:
    - **Layer 1 — Metadata** (zero cost): Resource types, dependency count, file count, package size, insecure flag
    - **Layer 2 — Source scan** (downloads tarball): Scans published `.ts/.js/.mjs/.cjs` files for dangerous patterns:
@@ -67,7 +67,8 @@ Ask pi to find packages:
 
 ## Design Principles
 
-- **Registry-first**: Search, detail, type filtering, and audit rely on npm registry metadata; results also include pi.dev gallery links for browsing.
+- **Registry-first**: Search, detail, type filtering, and audit rely on npm registry metadata for correctness.
+- **Optional pi.dev enrichment**: Search results can be enriched with pi.dev gallery metadata for better browsing and display.
 - **Never auto-installs**: Always requires user confirmation after audit.
 - **Static scan disclaimer**: Clearly states that keyword scanning cannot detect obfuscated code.
 - **Zero dependencies**: Pure TypeScript, no runtime npm dependencies.

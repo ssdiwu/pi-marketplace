@@ -1,7 +1,7 @@
 {
   "name": "pi-marketplace",
   "version": "0.1.0",
-  "description": "Pi extension for searching, auditing, and installing pi packages from npm — with security review and pi.dev gallery links",
+  "description": "Pi extension for searching, auditing, and installing pi packages from npm — with security review and optional pi.dev enrichment",
   "type": "module",
   "keywords": [
     "pi-package",

@@ -10,6 +10,7 @@ const buildDir = resolve('.tmp/test-build');
 const fixtureDir = join(tmpdir(), `pi-marketplace-fixture-${process.pid}`);
 
 let api;
+let enrich;
 let security;
 
 before(async () => {
@@ -19,6 +20,7 @@ before(async () => {
   });
 
   api = await import(pathToFileURL(join(buildDir, 'api.js')).href);
+  enrich = await import(pathToFileURL(join(buildDir, 'enrich.js')).href);
   security = await import(pathToFileURL(join(buildDir, 'security.js')).href);
 });
 
@@ -47,6 +49,18 @@ test('getPackageDetail follows dist-tags.latest metadata', async () => {
   assert.match(detail.links.npm ?? '', /npmjs\.com\/package\/pi-mcp-adapter/);
   assert.match(detail.links.homepage ?? '', /github\.com/);
   assert.match(detail.links.repository ?? '', /github\.com/);
+});
+
+test('fetchPiDevPackages enriches search metadata from pi.dev', async () => {
+  const results = await enrich.fetchPiDevPackages('mcp');
+  const target = results.find((pkg) => pkg.name === 'pi-mcp-adapter');
+
+  assert.ok(target, 'expected pi-mcp-adapter in pi.dev results');
+  assert.equal(target.author, 'nicopreme');
+  assert.ok(target.downloads.endsWith('/mo'), 'expected human-readable downloads');
+  assert.match(target.timeAgo, /^(?:today|\d+[hdw] ago|\d+mo ago)$/);
+  assert.ok(target.types.includes('extension'));
+  assert.equal(target.installCmd, 'pi install npm:pi-mcp-adapter');
 });
 
 test('sourceScan scans dist output files', async () => {
