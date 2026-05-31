@@ -4,7 +4,7 @@
 [![license](https://img.shields.io/npm/l/pi-marketplace.svg)](https://github.com/ssdiwu/pi-marketplace/blob/main/LICENSE)
 [![install size](https://packagephobia.now.sh/badge?p=pi-marketplace)](https://packagephobia.now.sh/result?p=pi-marketplace)
 
-Pi extension for **searching, auditing, and installing** pi packages from npm — with built-in security review and optional pi.dev enrichment.
+Pi extension for **searching, auditing, and installing** pi packages from npm — with built-in security review and pi.dev gallery links.
 
 ## Features
 
@@ -54,11 +54,11 @@ Ask pi to find packages:
 ## How It Works
 
 1. **Search**: Queries npm registry with `keywords:pi-package`, filters by your query
-2. **Type filtering**: Fetches each result's `pi` manifest to determine resource type — done locally, not relying on pi.dev's buggy `type=` parameter
-3. **Enrichment** (optional): If a web fetch tool is available (tinyfish, web-fetch, etc.), enriches results with pi.dev data
+2. **Type filtering**: Fetches each result's `pi` manifest to determine resource type locally
+3. **Gallery links**: Adds a pi.dev package page link to each result for quick browsing
 4. **Security audit**:
    - **Layer 1 — Metadata** (zero cost): Resource types, dependency count, file count, package size, insecure flag
-   - **Layer 2 — Source scan** (downloads tarball): Scans `.ts/.js/.mjs` files for dangerous patterns:
+   - **Layer 2 — Source scan** (downloads tarball): Scans published `.ts/.js/.mjs/.cjs` files for dangerous patterns:
      - 🔴 Critical: `rm -rf`, `rimraf`, `fs.unlink`, `fs.rmdir`
      - 🟠 High: `eval()`, `Function()`, `execSync()`, `spawn()`
      - 🟡 Medium: `process.env`, `child_process`, HTTP requests
@@ -67,7 +67,7 @@ Ask pi to find packages:
 
 ## Design Principles
 
-- **Tool-agnostic enrichment**: Detects available web fetch tools dynamically via `pi.getAllTools()`. No hard dependency on tinyfish or any specific tool.
+- **Registry-first**: Search, detail, type filtering, and audit rely on npm registry metadata; results also include pi.dev gallery links for browsing.
 - **Never auto-installs**: Always requires user confirmation after audit.
 - **Static scan disclaimer**: Clearly states that keyword scanning cannot detect obfuscated code.
 - **Zero dependencies**: Pure TypeScript, no runtime npm dependencies.
@@ -78,13 +78,19 @@ Ask pi to find packages:
 git clone https://github.com/507/pi-marketplace.git
 cd pi-marketplace
 npm install          # peer deps
-pi -e .             # load extension for testing
+pi --no-extensions -e .   # load only this extension for testing
+```
+
+### Test
+
+```bash
+npm test
 ```
 
 ### Type Check
 
 ```bash
-npx tsc --noEmit --strict --moduleResolution bundler --module esnext --target es2022 --skipLibCheck extensions/*.ts extensions/tools/*.ts
+npm run typecheck
 ```
 
 ## Configuration

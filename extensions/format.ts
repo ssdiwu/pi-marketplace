@@ -158,8 +158,12 @@ function formatSize(bytes: number): string {
 }
 
 function formatDate(dateStr: string): string {
+  if (!dateStr) return "unknown";
+
   try {
     const d = new Date(dateStr);
+    if (Number.isNaN(d.getTime())) return dateStr;
+
     const now = new Date();
     const diffMs = now.getTime() - d.getTime();
     const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));

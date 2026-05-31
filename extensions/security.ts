@@ -2,10 +2,10 @@
 // Security Audit — metadata check + source code keyword scanning
 // ---------------------------------------------------------------------------
 
-import type { PiManifest, PackageDetail } from "./api.js";
-import { exec } from "node:child_process";
+import type { PackageDetail } from "./api.js";
+import { execFile } from "node:child_process";
 import { mkdir, rm, readdir, readFile } from "node:fs/promises";
-import { join } from "node:path";
+import { join, relative } from "node:path";
 import { tmpdir } from "node:os";
 
 export type RiskLevel = "critical" | "high" | "medium" | "low" | "info";
@@ -49,28 +49,25 @@ interface DangerPattern {
 }
 
 const DANGER_PATTERNS: DangerPattern[] = [
-  // Critical — destructive file operations
   { pattern: /\brm\s+(-rf|--recursive)\s+/g, severity: "critical", description: "Recursive file deletion" },
   { pattern: /rimraf\s*\(/g, severity: "critical", description: "rimraf (recursive delete)" },
   { pattern: /fs\.unlink/g, severity: "critical", description: "File unlink/delete" },
   { pattern: /fs\.rmdir/g, severity: "critical", description: "Directory removal" },
   { pattern: /fs\.rm/g, severity: "critical", description: "fs.rm recursive delete" },
-  // High — code execution
   { pattern: /eval\s*\(/g, severity: "high", description: "eval() dynamic code execution" },
   { pattern: /new\s+Function\s*\(/g, severity: "high", description: "Function() constructor" },
   { pattern: /execSync\s*\(/g, severity: "high", description: "Synchronous command execution" },
   { pattern: /exec\(\s*`/g, severity: "high", description: "Template literal in exec()" },
   { pattern: /spawn\s*\(/g, severity: "high", description: "Child process spawn" },
-  // Medium — environment access & network
   { pattern: /process\.env/g, severity: "medium", description: "Environment variable access" },
   { pattern: /child_process/g, severity: "medium", description: "Child process module" },
   { pattern: /fetch\s*\(\s*http/gi, severity: "medium", description: "External HTTP request" },
   { pattern: /https?(?:Request|Agent)/gi, severity: "medium", description: "HTTP client usage" },
-  // Low — permission changes
   { pattern: /chmod\s*\(/g, severity: "low", description: "File permission change" },
   { pattern: /chown\s*\(/g, severity: "low", description: "File ownership change" },
 ];
 
+const IGNORED_DIRECTORIES = ["node_modules", ".git", ".cache", "coverage"];
 const SOURCE_EXTENSIONS = [".ts", ".js", ".mjs", ".cjs"];
 
 // ---------------------------------------------------------------------------
@@ -112,60 +109,67 @@ export async function sourceScan(name: string): Promise<Finding[]> {
 
   try {
     await mkdir(tmpDir, { recursive: true });
-
-    // npm pack to download tarball
-    await new Promise<void>((resolve, reject) => {
-      exec(`npm pack "${name}" --pack-destination="${tmpDir}"`, { timeout: 30_000 }, (err, _out, stderr) => {
-        if (err) reject(new Error(`npm pack failed: ${err.message}\n${stderr}`));
-        else resolve();
-      });
-    });
+    await runCommand("npm", ["pack", name, `--pack-destination=${tmpDir}`], 30_000, "npm pack");
 
     const files = await readdir(tmpDir);
     const tgzFile = files.find((f) => f.endsWith(".tgz"));
     if (!tgzFile) throw new Error("No tarball found after npm pack");
 
-    // Extract
-    await new Promise<void>((resolve, reject) => {
-      exec(`tar xzf "${join(tmpDir, tgzFile)}" -C "${tmpDir}"`, { timeout: 15_000 }, (err, _out, stderr) => {
-        if (err) reject(new Error(`tar extract failed: ${err.message}\n${stderr}`));
-        else resolve();
-      });
-    });
+    await runCommand("tar", ["xzf", join(tmpDir, tgzFile), "-C", tmpDir], 15_000, "tar extract");
 
-    // Scan package/ subdirectory or root
     let scanDir = tmpDir;
-    try { await readdir(join(tmpDir, "package")); scanDir = join(tmpDir, "package"); } catch { /* use root */ }
+    try {
+      await readdir(join(tmpDir, "package"));
+      scanDir = join(tmpDir, "package");
+    } catch {
+      // Use extracted root when tarball does not contain package/
+    }
 
-    await walkAndScan(scanDir, findings);
+    await walkAndScan(scanDir, scanDir, findings);
   } finally {
-    try { await rm(tmpDir, { recursive: true, force: true }); } catch { /* ignore */ }
+    try {
+      await rm(tmpDir, { recursive: true, force: true });
+    } catch {
+      // ignore cleanup errors
+    }
   }
+
   return findings;
 }
 
-async function walkAndScan(dir: string, findings: Finding[]): Promise<void> {
+async function walkAndScan(dir: string, rootDir: string, findings: Finding[]): Promise<void> {
   let entries;
-  try { entries = await readdir(dir, { withFileTypes: true }); } catch { return; }
+  try {
+    entries = await readdir(dir, { withFileTypes: true });
+  } catch {
+    return;
+  }
 
   for (const entry of entries) {
     const fullPath = join(dir, entry.name);
-    if (["node_modules", "dist", ".git", ".cache", "coverage"].includes(entry.name)) continue;
+    if (IGNORED_DIRECTORIES.includes(entry.name)) continue;
 
     if (entry.isDirectory()) {
-      await walkAndScan(fullPath, findings);
-    } else {
-      const ext = entry.name.includes(".") ? "." + entry.name.split(".").pop() : "";
-      if (SOURCE_EXTENSIONS.includes(ext)) await scanFile(fullPath, findings);
+      await walkAndScan(fullPath, rootDir, findings);
+      continue;
+    }
+
+    const ext = entry.name.includes(".") ? `.${entry.name.split(".").pop()}` : "";
+    if (SOURCE_EXTENSIONS.includes(ext)) {
+      await scanFile(fullPath, rootDir, findings);
     }
   }
 }
 
-async function scanFile(filePath: string, findings: Finding[]): Promise<void> {
+async function scanFile(filePath: string, rootDir: string, findings: Finding[]): Promise<void> {
   let content: string;
-  try { content = await readFile(filePath, "utf-8"); } catch { return; }
+  try {
+    content = await readFile(filePath, "utf-8");
+  } catch {
+    return;
+  }
 
-  const relPath = filePath.replace(/^.*\/package\//, "package/");
+  const relPath = relative(rootDir, filePath) || filePath;
   const lines = content.split("\n");
 
   for (const danger of DANGER_PATTERNS) {
@@ -176,7 +180,10 @@ async function scanFile(filePath: string, findings: Finding[]): Promise<void> {
       let charCount = 0;
       for (let i = 0; i < lines.length; i++) {
         charCount += lines[i]!.length + 1;
-        if (charCount > match.index!) { lineNum = i + 1; break; }
+        if (charCount > match.index) {
+          lineNum = i + 1;
+          break;
+        }
       }
       findings.push({
         severity: danger.severity,
@@ -190,7 +197,7 @@ async function scanFile(filePath: string, findings: Finding[]): Promise<void> {
 }
 
 function truncate(s: string, n: number): string {
-  return s.length > n ? s.slice(0, n - 1) + "…" : s;
+  return s.length > n ? `${s.slice(0, n - 1)}…` : s;
 }
 
 // ---------------------------------------------------------------------------
@@ -204,10 +211,15 @@ export async function fullAudit(name: string, deepScan = true): Promise<AuditRep
 
   let findings: Finding[] = [];
   if (deepScan) {
-    try { findings = await sourceScan(name); }
-    catch (err) {
-      findings = [{ severity: "info", pattern: "Source scan unavailable", file: "",
-        context: `Error: ${err instanceof Error ? err.message : String(err)}` }];
+    try {
+      findings = await sourceScan(name);
+    } catch (err) {
+      findings = [{
+        severity: "info",
+        pattern: "Source scan unavailable",
+        file: "",
+        context: `Error: ${err instanceof Error ? err.message : String(err)}`,
+      }];
     }
   }
   return buildReport(name, detail.version, meta, findings, deepScan);
@@ -218,12 +230,15 @@ export async function fullAudit(name: string, deepScan = true): Promise<AuditRep
 // ---------------------------------------------------------------------------
 
 function buildReport(
-  name: string, version: string, meta: MetadataCheck,
-  findings: Finding[], deepScanned: boolean,
+  name: string,
+  version: string,
+  meta: MetadataCheck,
+  findings: Finding[],
+  deepScanned: boolean,
 ): AuditReport {
-  const crit = findings.filter(f => f.severity === "critical").length;
-  const high = findings.filter(f => f.severity === "high").length;
-  const med = findings.filter(f => f.severity === "medium").length;
+  const crit = findings.filter((f) => f.severity === "critical").length;
+  const high = findings.filter((f) => f.severity === "high").length;
+  const med = findings.filter((f) => f.severity === "medium").length;
 
   const overallRisk: RiskLevel =
     crit > 0 ? "critical" : high > 0 ? "high" : med > 2 ? "medium" : med > 0 ? "low" : "info";
@@ -236,7 +251,7 @@ function buildReport(
   } else if (hasExtensions && high > 0) {
     parts.push(`This extension contains ${high} high-risk patterns. Review recommended.`);
   } else if (findings.length === 0 && deepScanned) {
-    parts.push("No dangerous patterns found in source code. Package appears safe based on static analysis.");
+    parts.push("No dangerous patterns found in published source code. Package appears safe based on static analysis.");
   } else if (!deepScanned) {
     parts.push("Metadata-only audit (no source scan). Run with deepScan=true for full analysis.");
   } else {
@@ -244,9 +259,29 @@ function buildReport(
   }
 
   return {
-    packageName: name, version, overallRisk,
-    metadata: meta, findings,
+    packageName: name,
+    version,
+    overallRisk,
+    metadata: meta,
+    findings,
     summary: parts.join(" "),
     deepScanned,
   };
+}
+
+async function runCommand(
+  command: string,
+  args: string[],
+  timeout: number,
+  label: string,
+): Promise<void> {
+  await new Promise<void>((resolve, reject) => {
+    execFile(command, args, { timeout }, (err, _stdout, stderr) => {
+      if (err) {
+        reject(new Error(`${label} failed: ${err.message}${stderr ? `\n${stderr}` : ""}`));
+        return;
+      }
+      resolve();
+    });
+  });
 }

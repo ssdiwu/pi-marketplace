@@ -5,7 +5,7 @@
 // Search, audit, and install pi packages from npm with security review.
 //
 // Tools:
-//   marketplace_search  — Search pi packages (npm registry + optional pi.dev)
+//   marketplace_search  — Search pi packages (npm registry + gallery links)
 //   marketplace_detail  — Package details + pi manifest
 //   marketplace_audit   — Security audit (metadata + source scan)
 //   marketplace_install — Audit → confirm → install

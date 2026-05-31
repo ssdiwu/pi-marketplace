@@ -4,7 +4,7 @@
 
 import { Type, Static } from "@earendil-works/pi-ai";
 import type { ExtensionContext } from "@earendil-works/pi-coding-agent";
-import { exec } from "node:child_process";
+import { execFile } from "node:child_process";
 import { fullAudit } from "../security.js";
 import { formatAuditReport } from "../format.js";
 
@@ -41,33 +41,27 @@ export const marketplace_install = {
     }
 
     try {
-      // Step 1: Run audit
       const report = await fullAudit(params.name, params.deepScan ?? true);
       const auditOutput = formatAuditReport(report);
-
-      // Step 2: Present audit and ask for confirmation
       const isHighRisk = report.overallRisk === "critical" || report.overallRisk === "high";
 
-      let confirmMessage: string;
-      if (isHighRisk) {
-        confirmMessage = [
-          `⚠️ **${report.overallRisk.toUpperCase()} RISK** detected in ${params.name}!`,
-          "",
-          `Found ${report.findings.length} issue(s) (${report.findings.filter(f => f.severity === "critical" || f.severity === "high").length} high/critical).`,
-          "",
-          `**Summary**: ${report.summary}`,
-          "",
-          `Are you sure you want to install \`${params.name}\`?`,
-        ].join("\n");
-      } else {
-        confirmMessage = [
-          `✅ Audit passed for **${params.name}** (risk level: ${report.overallRisk})`,
-          "",
-          `${report.findings.length} finding(s) found. ${report.summary}`,
-          "",
-          `Install \`${params.name}\` now?`,
-        ].join("\n");
-      }
+      const confirmMessage = isHighRisk
+        ? [
+            `⚠️ **${report.overallRisk.toUpperCase()} RISK** detected in ${params.name}!`,
+            "",
+            `Found ${report.findings.length} issue(s) (${report.findings.filter((f) => f.severity === "critical" || f.severity === "high").length} high/critical).`,
+            "",
+            `**Summary**: ${report.summary}`,
+            "",
+            `Are you sure you want to install \`${params.name}\`?`,
+          ].join("\n")
+        : [
+            `✅ Audit passed for **${params.name}** (risk level: ${report.overallRisk})`,
+            "",
+            `${report.findings.length} finding(s) found. ${report.summary}`,
+            "",
+            `Install \`${params.name}\` now?`,
+          ].join("\n");
 
       const confirmed = await ctx.ui.confirm(
         isHighRisk ? `⚠️ High Risk — Install ${params.name}?` : `Install ${params.name}?`,
@@ -78,19 +72,13 @@ export const marketplace_install = {
         return {
           content: [{
             type: "text" as const,
-            text: [`❌ Installation cancelled by user.`, "", `Audit report for reference:`, auditOutput].join("\n"),
+            text: ["❌ Installation cancelled by user.", "", "Audit report for reference:", auditOutput].join("\n"),
           }],
           details: { packageName: params.name, installed: false, riskLevel: report.overallRisk },
         };
       }
 
-      // Step 3: Execute pi install via child_process
-      const installResult = await new Promise<{ stdout: string; stderr: string; code: number | null }>((resolve, reject) => {
-        exec(`pi install npm:${params.name}`, { timeout: 60_000 }, (err, stdout, stderr) => {
-          if (err && !err.killed) reject(err);
-          else resolve({ stdout: stdout ?? "", stderr: stderr ?? "", code: err?.code ?? null });
-        });
-      });
+      const installResult = await runPiInstall(params.name);
 
       return {
         content: [{
@@ -98,12 +86,13 @@ export const marketplace_install = {
           text: [
             `✅ **${params.name}** installed successfully!`,
             installResult.stdout.trim(),
-            `Run \`/reload\` if pi is already running to load the new package.`,
+            installResult.stderr.trim(),
+            "Run `/reload` if pi is already running to load the new package.",
             "",
             "---",
             "Audit Report:",
             auditOutput,
-          ].join("\n"),
+          ].filter(Boolean).join("\n"),
         }],
         details: { packageName: params.name, installed: true, riskLevel: report.overallRisk },
       };
@@ -116,3 +105,18 @@ export const marketplace_install = {
     }
   },
 };
+
+async function runPiInstall(name: string): Promise<{ stdout: string; stderr: string }> {
+  return await new Promise((resolve, reject) => {
+    execFile("pi", ["install", `npm:${name}`], { timeout: 60_000 }, (err, stdout, stderr) => {
+      if (err) {
+        const reason = err.killed
+          ? `pi install timed out or was killed${err.signal ? ` (signal: ${err.signal})` : ""}`
+          : err.message;
+        reject(new Error(`${reason}${stderr ? `\n${stderr}` : ""}`));
+        return;
+      }
+      resolve({ stdout: stdout ?? "", stderr: stderr ?? "" });
+    });
+  });
+}
