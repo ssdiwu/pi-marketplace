@@ -1,0 +1,11 @@
+# npm publish should exclude dev/internal artifacts
+node_modules/
+tmp/
+.tmp/
+.dteam/
+.github/
+.gitignore
+*.tgz
+tests/
+*.test.mjs
+*.tsbuildinfo
