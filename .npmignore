@@ -9,3 +9,4 @@ tmp/
 tests/
 *.test.mjs
 *.tsbuildinfo
+doc/
