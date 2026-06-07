@@ -75,6 +75,37 @@
 - 短期：建 `extensions/i18n.ts`，暴露 `t(key, locale?)` 函数，硬编码 zh-CN + en 两套
 - 改动：新建文件 + 把现有 4 个 tool 的 UI 文案替换成 `t('xxx')`，1-2 小时
 
+### 2.1.1 ✅ v0.1.1 已完成：renderResult 折叠/展开（2026-06-07）
+
+独立 patch 版本，单独发版。**不在原 § 2.1 表格 5 项里**，是 v0.1.1 阶段追加的 UX 增强能力。
+
+**做了什么**：
+- 4 个 tool（`marketplace_search` / `_detail` / `_audit` / `_install`）都加 `renderResult` 字段
+- 新建 `extensions/render.ts`（~100 行）：
+  - `renderCollapsibleMarkdown` 通用函数
+  - `formatRiskBadge` helper 给 audit / install 共享
+- 加 peer/dev dep `@earendil-works/pi-tui@^0.78.1`
+
+**效果**：
+- 用户视角：tool 输出默认 1 行摘要 + `(ctrl+o to expand)`，按 ctrl+o 展开看完整 markdown
+- LLM 视角：完全不变（`content[].text` 仍是完整数据）
+- 4 个 tool 摘要：
+  - search → `📦 Found N pi package(s)`
+  - detail → `📦 {name} v{version}`
+  - audit → `🔒 {name}: {RISK_BADGE} (N finding(s))`
+  - install → `📥 {result} {name} (Audit: {RISK_BADGE})`
+
+**为什么是 patch (0.1.1) 不是 minor (0.2.0)**：
+- 没有 breaking change
+- `execute` 返回值不变
+- LLM 视角 100% 兼容
+- 改动小且内部
+- 决策参考：peer dep 增加 + 新文件 + UI 增强，三者平衡考虑 patch 更轻
+
+**借鉴来源**：[pi-tinyfish](https://github.com/ssdiwu/pi-tinyfish) `extensions/render.ts`（同样机制，2026-06 已发布 0.2.0 包含此功能）
+
+**关联**：实现 commit `0fcee91`，版本路线图 v0.1.1
+
 ### 2.2 中期（1-2 月）
 
 | # | 项 | 标签 | 价值 | 成本 |
@@ -188,6 +219,8 @@
 |---|---|
 | `extensions/security.ts` | § 2.1 #2（maxBuffer / AbortSignal / URL 白名单） |
 | `extensions/tools/{search,detail,audit,install}.ts` | § 2.1 #1（`promptSnippet` / `promptGuidelines`） |
+| `extensions/render.ts` | **§ 2.1.1（renderCollapsibleMarkdown + formatRiskBadge）✅ v0.1.1 完成** |
+| `extensions/tools/{search,detail,audit,install}.ts` | **§ 2.1.1（4 个 tool 加 `renderResult` 字段）✅ v0.1.1 完成** |
 | `extensions/tools/install.ts` | § 2.1 #3（`setStatus` spinner） |
 | `extensions/format.ts` | § 2.2 #6、#11（`PackageInfo` 字段） |
 | `extensions/api.ts` | § 2.2 #6（数据模型扩展） |
@@ -206,3 +239,5 @@
 | 日期 | 变更 |
 |---|---|
 | 2026-06-06 | 初版。范围从"overlay panel 最小 demo"扩展为"从 pi-packages-manager 全方位借鉴路线图"。理由：我们当前没分层、没架构设计，需要路线图级别而非 demo 级别的学习 |
+| 2026-06-06 | 修订。修正 § 2.1 #1 状态：实际 v0.1.0 commit `cbe52da` 已带 `promptSnippet` / `promptGuidelines`，从短期表移除 |
+| 2026-06-07 | 追加 § 2.1.1：v0.1.1 完成 renderResult 折叠/展开（独立 patch，借鉴 pi-tinyfish）。新增 `extensions/render.ts`，4 个 tool 加 `renderResult` 字段 |
