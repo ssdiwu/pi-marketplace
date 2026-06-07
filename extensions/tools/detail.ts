@@ -5,6 +5,7 @@
 import { Type, Static } from "@earendil-works/pi-ai";
 import { getPackageDetail } from "../api.js";
 import { formatPackageDetail } from "../format.js";
+import { renderCollapsibleMarkdown } from "../render.js";
 
 const Params = Type.Object({
   name: Type.String({ description: "Package name (e.g., 'pi-mcp-adapter', '@scope/pkg-name')" }),
@@ -50,5 +51,12 @@ export const marketplace_detail = {
         details: { name: params.name, version: "", types: [], error: msg },
       };
     }
+  },
+
+  renderResult(result: any, options: any, theme: any) {
+    const name = (result.details?.name as string | undefined) ?? "?";
+    const version = (result.details?.version as string | undefined) ?? "?";
+    const summary = `📦 ${name} v${version}`;
+    return renderCollapsibleMarkdown(result, options, theme, summary);
   },
 };

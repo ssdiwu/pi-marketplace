@@ -7,6 +7,7 @@ import type { ExtensionContext } from "@earendil-works/pi-coding-agent";
 import { execFile } from "node:child_process";
 import { fullAudit } from "../security.js";
 import { formatAuditReport } from "../format.js";
+import { renderCollapsibleMarkdown, formatRiskBadge } from "../render.js";
 
 const Params = Type.Object({
   name: Type.String({ description: "Package name to install (e.g., 'pi-mcp-adapter')" }),
@@ -103,6 +104,16 @@ export const marketplace_install = {
         details: { packageName: params.name, installed: false, riskLevel: "info", error: msg },
       };
     }
+  },
+
+  renderResult(result: any, options: any, theme: any) {
+    const name = (result.details?.packageName as string | undefined) ?? "?";
+    const installed = result.details?.installed as boolean | undefined;
+    const risk = (result.details?.riskLevel as string | undefined) ?? "info";
+    const summary = installed
+      ? `📥 Installed ${name} (Audit: ${formatRiskBadge(risk)})`
+      : `📥 Install ${installed === false ? "cancelled" : "attempted"}: ${name}`;
+    return renderCollapsibleMarkdown(result, options, theme, summary);
   },
 };
 

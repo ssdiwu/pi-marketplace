@@ -6,6 +6,7 @@ import { Type, Static, StringEnum } from "@earendil-works/pi-ai";
 import { searchPackages, getPkgPiManifest, inferPackageTypes } from "../api.js";
 import { formatSearchResults } from "../format.js";
 import { enrichResults, fetchPiDevPackages } from "../enrich.js";
+import { renderCollapsibleMarkdown } from "../render.js";
 import type { NpmSearchResult, PackageType, PiManifest } from "../api.js";
 
 const Params = Type.Object({
@@ -77,6 +78,12 @@ export const marketplace_search = {
         details: { resultCount: 0, error: msg },
       };
     }
+  },
+
+  renderResult(result: any, options: any, theme: any) {
+    const count = (result.details?.resultCount as number | undefined) ?? 0;
+    const summary = `📦 Found ${count} pi package(s)`;
+    return renderCollapsibleMarkdown(result, options, theme, summary);
   },
 };
 

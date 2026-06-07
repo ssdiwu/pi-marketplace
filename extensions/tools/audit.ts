@@ -5,6 +5,7 @@
 import { Type, Static } from "@earendil-works/pi-ai";
 import { fullAudit } from "../security.js";
 import { formatAuditReport } from "../format.js";
+import { renderCollapsibleMarkdown, formatRiskBadge } from "../render.js";
 
 const Params = Type.Object({
   name: Type.String({ description: "Package name to audit (e.g., 'pi-mcp-adapter')" }),
@@ -58,5 +59,13 @@ export const marketplace_audit = {
         },
       };
     }
+  },
+
+  renderResult(result: any, options: any, theme: any) {
+    const name = (result.details?.packageName as string | undefined) ?? "?";
+    const risk = (result.details?.overallRisk as string | undefined) ?? "info";
+    const count = (result.details?.findingCount as number | undefined) ?? 0;
+    const summary = `🔒 ${name}: ${formatRiskBadge(risk)} (${count} finding${count === 1 ? "" : "s"})`;
+    return renderCollapsibleMarkdown(result, options, theme, summary);
   },
 };
