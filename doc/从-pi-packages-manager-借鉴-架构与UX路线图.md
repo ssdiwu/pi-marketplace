@@ -40,18 +40,19 @@
 
 | # | 项 | 标签 | 价值 | 成本 |
 |---|---|---|---|---|
-| 1 | `promptSnippet` + `promptGuidelines` 补齐 | UX | 高 | 低 |
-| 2 | `security.ts` 同步三项改进 | 健壮性 | 中 | 低 |
-| 3 | 安装进度用 `setStatus` spinner | UX | 中 | 低 |
-| 4 | `tools/` 子目录按对象重组（不要 4 个并列） | 工程 | 中 | 低 |
-| 5 | i18n 基础设施：提取 `t()` 函数，硬编码 2 套 | 工程 | 中 | 中 |
+| 1 | ~~`promptSnippet` + `promptGuidelines` 补齐~~ | UX | 高 | 低 | ✅ 已在 v0.1.0 完成 |
+| 2 | `security.ts` 同步三项改进 | 健壮性 | 中 | 低 | 待做 |
+| 3 | 安装进度用 `setStatus` spinner | UX | 中 | 低 | 待做 |
+| 4 | `tools/` 子目录按对象重组（不要 4 个并列） | 工程 | 中 | 低 | 待做 |
+| 5 | i18n 基础设施：提取 `t()` 函数，硬编码 2 套 | 工程 | 中 | 中 | 待做 |
 
 **详细说明**：
 
-**#1 `promptSnippet` + `promptGuidelines`**
-- pi-packages-manager 的 4 个 tool 都填了这两个字段，告诉 LLM "何时调、怎么用"
-- 我们 4 个 tool 都**没填**，LLM 靠 description 猜何时调用
-- 改动：每个 tool 的 `registerTool` 加 2 个字段，10 分钟
+**#1 ✅ 已在 v0.1.0 完成**
+- 4 个 tool（`marketplace_search` / `_detail` / `_audit` / `_install`）都已加 `promptSnippet` + `promptGuidelines` 字段
+- 范围：每个 tool 3-5 条 `promptGuidelines` 规则，告诉 LLM 何时调、怎么用
+- 改进时机：v0.1.0 提交 `cbe52da` 时已带，不是 v0.2.0 的工作
+- 借鉴路线图之前误判为"待做"，2026-06-06 修正
 
 **#2 `security.ts` 三项改进**
 - `maxBuffer: 32 * 1024 * 1024`（大输出不挂）
