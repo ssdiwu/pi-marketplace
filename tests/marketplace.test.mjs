@@ -15,7 +15,7 @@ let security;
 
 before(async () => {
   rmSync(buildDir, { recursive: true, force: true });
-  execFileSync('bash', ['-lc', 'npx tsc --outDir .tmp/test-build --module esnext --target es2022 --moduleResolution bundler --skipLibCheck extensions/*.ts extensions/tools/*.ts'], {
+  execFileSync('bash', ['-lc', 'npx tsc --outDir .tmp/test-build --module esnext --target es2022 --moduleResolution bundler --skipLibCheck src/*.ts src/tools/*.ts'], {
     stdio: 'inherit',
   });
 

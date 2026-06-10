@@ -3,7 +3,7 @@
 // ---------------------------------------------------------------------------
 //
 // Inspired by pi-tinyfish:
-//   https://github.com/ssdiwu/pi-tinyfish/blob/main/extensions/render.ts
+//   https://github.com/ssdiwu/pi-tinyfish/blob/main/src/render.ts
 //
 // Default `renderResult` body for the 4 pi-marketplace tools.
 //

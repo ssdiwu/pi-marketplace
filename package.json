@@ -1,6 +1,6 @@
 {
   "name": "pi-marketplace",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Pi extension for searching, auditing, and installing pi packages from npm — with security review and optional pi.dev enrichment",
   "type": "module",
   "keywords": [
@@ -9,7 +9,8 @@
     "marketplace",
     "search",
     "audit",
-    "install"
+    "install",
+    "extension"
   ],
   "license": "MIT",
   "author": "507",
@@ -18,7 +19,7 @@
   },
   "scripts": {
     "test": "node --test tests/*.test.mjs",
-    "typecheck": "tsc --noEmit --strict --moduleResolution bundler --module esnext --target es2022 --skipLibCheck extensions/*.ts extensions/tools/*.ts"
+    "typecheck": "tsc --noEmit --strict --moduleResolution bundler --module esnext --target es2022 --skipLibCheck index.ts src/*.ts src/tools/*.ts"
   },
   "peerDependencies": {
     "@earendil-works/pi-ai": "*",
@@ -28,11 +29,12 @@
   },
   "pi": {
     "extensions": [
-      "./extensions"
+      "./index.ts"
     ]
   },
   "files": [
-    "extensions/",
+    "index.ts",
+    "src/",
     "README.md",
     "LICENSE"
   ],
