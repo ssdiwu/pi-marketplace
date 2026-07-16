@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [v0.1.3] - 2026-07-16
+
 ### Fixed
 - **对象字段文字投影**：包详情中的 license、author 对象改为人类可读字段，不再输出原始对象文本。
 
