@@ -12,6 +12,7 @@ const fixtureDir = join(tmpdir(), `pi-marketplace-fixture-${process.pid}`);
 let api;
 let enrich;
 let security;
+let format;
 
 before(async () => {
   rmSync(buildDir, { recursive: true, force: true });
@@ -22,6 +23,7 @@ before(async () => {
   api = await import(pathToFileURL(join(buildDir, 'api.js')).href);
   enrich = await import(pathToFileURL(join(buildDir, 'enrich.js')).href);
   security = await import(pathToFileURL(join(buildDir, 'security.js')).href);
+  format = await import(pathToFileURL(join(buildDir, 'format.js')).href);
 });
 
 after(() => {
@@ -81,6 +83,18 @@ test('parsePiDevHtml parses rich metadata from pi.dev fixture HTML', () => {
   assert.ok(contextMode, 'expected context-mode from fixture');
   assert.deepEqual(contextMode.types, ['skill', 'extension']);
   assert.equal(contextMode.installCmd, 'pi install npm:context-mode');
+});
+
+test('formatPackageDetail projects a license object without JSON', () => {
+  const output = format.formatPackageDetail({ name: 'p', version: '1', license: { type: 'MIT', url: 'https://spdx.dev/MIT' }, author: 'a', publisher: { username: 'u' }, date: '', description: '', piManifest: {}, dependencies: {}, peerDependencies: {}, dist: { fileCount: 0, unpackedSize: 0 }, links: {} });
+  assert.match(output, /\*\*License\*\*: MIT · https:\/\/spdx.dev\/MIT/);
+  assert.ok(!output.includes('{"type"'));
+});
+
+test('formatPackageDetail projects author object fields without object text', () => {
+  const output = format.formatPackageDetail({ name: 'p', version: '1', license: 'MIT', author: { email: 'author@example.com', url: 'https://example.com/author' }, publisher: { username: 'u' }, date: '', description: '', piManifest: {}, dependencies: {}, peerDependencies: {}, dist: { fileCount: 0, unpackedSize: 0 }, links: {} });
+  assert.match(output, /\*\*Author\*\*: author@example\.com · https:\/\/example\.com\/author/);
+  assert.ok(!output.includes('[object Object]'));
 });
 
 test('sourceScan scans dist output files', async () => {

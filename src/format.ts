@@ -57,7 +57,7 @@ export function formatPackageDetail(detail: PackageDetail): string {
     "",
     `**Version**: ${detail.version}`,
     `**Type**: ${types || "unknown"}`,
-    `**License**: ${typeof detail.license === "string" ? detail.license : JSON.stringify(detail.license)}`,
+    `**License**: ${formatLicense(detail.license)}`,
     `**Author**: ${formatAuthor(detail.author)}`,
     `**Publisher**: ${detail.publisher.username}${detail.publisher.email ? ` (${detail.publisher.email.split("@")[1] ?? ""})` : ""}`,
     `**Published**: ${formatDate(detail.date)}`,
@@ -190,10 +190,21 @@ function formatDate(dateStr: string): string {
   }
 }
 
+function formatLicense(license: PackageDetail["license"]): string {
+  if (typeof license === "string") return license || "unspecified";
+  const fields = ["type", "name", "url"]
+    .map((key) => license[key])
+    .filter((value): value is string => typeof value === "string" && value.trim().length > 0);
+  return fields.length ? fields.join(" · ") : "unspecified";
+}
+
 function formatAuthor(author: string | Record<string, unknown> | undefined): string {
   if (!author) return "unknown";
   if (typeof author === "string") return author;
-  return (author.name as string) ?? author.toString();
+  const fields = ["name", "email", "url"]
+    .map((key) => author[key])
+    .filter((value): value is string => typeof value === "string" && value.trim().length > 0);
+  return fields.length ? fields.join(" · ") : "unknown";
 }
 
 function inferTypesString(manifest: import("./api.js").PiManifest): string {
