@@ -76,7 +76,7 @@ Ask pi to find packages:
 ## Development
 
 ```bash
-git clone https://github.com/507/pi-marketplace.git
+git clone https://github.com/ssdiwu/pi-marketplace.git
 cd pi-marketplace
 npm install          # peer deps
 pi --no-extensions -e .   # load only this extension for testing
