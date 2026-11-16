@@ -16,6 +16,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [v0.1.1] - TBD
 
+> **本节是 v0.1.1 的发布记录（现行版本记录）。** 同一版本的规划与取舍另存于 `doc/references/版本路线图.md`（备查方案），两者以本节为准。
+
 > **一句话**：v0.1.0 是"能用"，v0.1.1 是"**用得爽**" — 4 个 tool 输出从"淹没屏幕"变成"1 行可折叠"。
 
 ### 用户视角：1 类能力提升
@@ -82,8 +84,8 @@ v0.1.1 后，pi 框架的 `renderResult` 字段启用：
 
 ### 关联材料
 
-- 借鉴路线图：`从-pi-packages-manager-借鉴-架构与UX路线图.md` § 2.1.1
-- 版本路线图：`版本路线图.md` v0.1.1
+- 借鉴路线图：`doc/references/从-pi-packages-manager-借鉴-架构与UX路线图.md` § 2.1.1
+- 版本路线图：`doc/references/版本路线图.md` v0.1.1
 - 实现 commit：`0fcee91` 功能：tool 输出支持折叠/展开（renderResult）
 - 借鉴来源：pi-tinyfish `extensions/render.ts`
 

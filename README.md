@@ -106,6 +106,10 @@ No configuration needed. All tools accept parameters at call time:
 | `name` | detail / audit / install | Package name |
 | `deepScan` | audit / install | Download and scan source (default true) |
 
+## Documentation
+
+- [doc/README.md](./doc/README.md) — 文档入口：现行正文、决策档案与参考证据的导航。
+
 ## License
 
 MIT
