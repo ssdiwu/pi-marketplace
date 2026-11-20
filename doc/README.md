@@ -8,6 +8,8 @@
 |------|------|------|
 | [../README.md](../README.md) | 使用者 | 工具表、安装、用法、How It Works、设计原则、参数表。唯一公开权威文档 |
 | [../AGENTS.md](../AGENTS.md) | agent | 文件职责与阅读顺序、安全边界、验证命令、文档与 Git 规则 |
+| [../src/README.md](../src/README.md) | 维护者 | 源码职责与目录边界：入口、文件职责（api / enrich / format / render / security / tools） |
+| [../src/tools/README.md](../src/tools/README.md) | 维护者 | 每个注册工具的文件归属与职责（search / detail / audit / install） |
 | [../CHANGELOG.md](../CHANGELOG.md) | 维护者 | 版本发布记录；各版本规格与验证清单在此留档 |
 
 ## 决策档案
@@ -32,5 +34,6 @@
 
 ## 使用约定
 
-- 本目录不保留现行机制的第二份正文。新增材料先判断归属：现行机制写进 `README.md`，难逆转决定进 `决策档案/`，其余进 `references/`。
+- 本目录不保留现行机制的第二份正文。新增材料先判断归属：用户可见的工具、安装与参数说明写进根 `README.md`，源码职责写进 `src/README.md` 与 `src/tools/README.md`，难逆转决定进 `决策档案/`，其余进 `references/`。
 - 根目录没有 `PLAN.md`；当前执行状态以 `CHANGELOG.md` 与 `package.json` 的版本号为准。
+- 本仓库没有 `doc/架构/`、`doc/规格/`、`doc/术语表.md`、`doc/经验笔记.md`：机制与工具契约正文已在根 `README.md` 与 `src/README.md`、`src/tools/README.md`，没有对应内容时不建空目录。
