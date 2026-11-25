@@ -2,7 +2,7 @@
 // marketplace_search — Search pi packages from npm registry
 // ---------------------------------------------------------------------------
 
-import { Type, Static, StringEnum } from "@earendil-works/pi-ai";
+import { Type, type Static } from "typebox";
 import { searchPackages, getPkgPiManifest, inferPackageTypes } from "../api.js";
 import { formatSearchResults } from "../format.js";
 import { enrichResults, fetchPiDevPackages } from "../enrich.js";
@@ -11,7 +11,7 @@ import type { NpmSearchResult, PackageType, PiManifest } from "../api.js";
 
 const Params = Type.Object({
   query: Type.String({ description: "Search query (e.g., 'mcp', 'subagents', 'theme')" }),
-  type: Type.Optional(StringEnum(["extension", "skill", "prompt", "theme"] as const)),
+  type: Type.Optional(Type.Enum(["extension", "skill", "prompt", "theme"], { type: "string" })),
   limit: Type.Optional(Type.Number({ description: "Max results (default 20, max 250)" })),
 });
 

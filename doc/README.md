@@ -1,16 +1,29 @@
 # doc/
 
+English navigation, with the original Chinese text preserved below.
+
+| Document | Audience | What it answers |
+|----------|----------|-----------------|
+| [../README.md](../README.md) | users | English edition of the public guide to installation, tools, parameters, usage, and design |
+| [../README-zh.md](../README-zh.md) | users | The same document in Chinese |
+| [../AGENTS.md](../AGENTS.md) | agents | File responsibilities and reading order, security boundary, verification commands, doc and Git rules |
+
+**Contributing**: keep the English `README.md` (npm default) and the Chinese `README-zh.md` in sync in the same commit; daily changelog entries live in Chinese in `../CHANGELOG-zh.md`, and the English `../CHANGELOG.md` is updated per version at release time with user-perceivable facts only. Both READMEs and both changelogs ship in the npm package. Verification entry points are `npm run typecheck` and `npm test` as recorded in `../AGENTS.md`. Do not commit, push, tag or publish without explicit maintainer approval.
+
+---
+
 本文件只做入口导航，不重复规格正文。公开工具、安装和使用以仓库根 [README.md](../README.md) 为准；agent 工作约定以 [AGENTS.md](../AGENTS.md) 为准。
 
 ## 现行正文
 
 | 位置 | 面向 | 说明 |
 |------|------|------|
-| [../README.md](../README.md) | 使用者 | 工具表、安装、用法、How It Works、设计原则、参数表。唯一公开权威文档 |
+| [../README.md](../README.md) | 使用者 | 公开使用指南英文版，涵盖安装、工具、参数、用法与设计 |
+| [../README-zh.md](../README-zh.md) | 使用者 | 同一份文档的中文版 |
 | [../AGENTS.md](../AGENTS.md) | agent | 文件职责与阅读顺序、安全边界、验证命令、文档与 Git 规则 |
 | [../src/README.md](../src/README.md) | 维护者 | 源码职责与目录边界：入口、文件职责（api / enrich / format / render / security / tools） |
 | [../src/tools/README.md](../src/tools/README.md) | 维护者 | 每个注册工具的文件归属与职责（search / detail / audit / install） |
-| [../CHANGELOG.md](../CHANGELOG.md) | 维护者 | 版本发布记录；各版本规格与验证清单在此留档 |
+| [../CHANGELOG.md](../CHANGELOG.md) | 使用者 | 英文发布记录，按版本说明用户可感知的变化 |
 
 ## 决策档案
 
@@ -35,5 +48,6 @@
 ## 使用约定
 
 - 本目录不保留现行机制的第二份正文。新增材料先判断归属：用户可见的工具、安装与参数说明写进根 `README.md`，源码职责写进 `src/README.md` 与 `src/tools/README.md`，难逆转决定进 `决策档案/`，其余进 `references/`。
-- 根目录没有 `PLAN.md`；当前执行状态以 `CHANGELOG.md` 与 `package.json` 的版本号为准。
+- 根目录没有 `PLAN.md`；已发布版本以 `../CHANGELOG.md` 与 `../package.json` 的版本号为准，日常变更在本仓中文 `../CHANGELOG-zh.md` 维护。
 - 本仓库没有 `doc/架构/`、`doc/规格/`、`doc/术语表.md`、`doc/经验笔记.md`：机制与工具契约正文已在根 `README.md` 与 `src/README.md`、`src/tools/README.md`，没有对应内容时不建空目录。
+- `README.md`（英文默认）与 `README-zh.md`（中文）需在同一次提交中同步；日常 changelog 在本仓用中文写入 `../CHANGELOG-zh.md`，英文 `../CHANGELOG.md` 发布时按版本同步更新，只记用户可感知事实；两份 README 与两份 changelog 都随 npm 包发布。

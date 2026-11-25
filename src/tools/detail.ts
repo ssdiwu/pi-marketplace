@@ -2,7 +2,7 @@
 // marketplace_detail — View package details + pi manifest
 // ---------------------------------------------------------------------------
 
-import { Type, Static } from "@earendil-works/pi-ai";
+import { Type, type Static } from "typebox";
 import { getPackageDetail } from "../api.js";
 import { formatPackageDetail } from "../format.js";
 import { renderCollapsibleMarkdown } from "../render.js";

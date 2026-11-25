@@ -2,7 +2,7 @@
 // marketplace_install — Audit → Confirm → Install
 // ---------------------------------------------------------------------------
 
-import { Type, Static } from "@earendil-works/pi-ai";
+import { Type, type Static } from "typebox";
 import type { ExtensionContext } from "@earendil-works/pi-coding-agent";
 import { execFile } from "node:child_process";
 import { fullAudit } from "../security.js";

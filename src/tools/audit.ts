@@ -2,7 +2,7 @@
 // marketplace_audit — Security audit (metadata + source scan)
 // ---------------------------------------------------------------------------
 
-import { Type, Static } from "@earendil-works/pi-ai";
+import { Type, type Static } from "typebox";
 import { fullAudit } from "../security.js";
 import { formatAuditReport } from "../format.js";
 import { renderCollapsibleMarkdown, formatRiskBadge } from "../render.js";

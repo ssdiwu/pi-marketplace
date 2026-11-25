@@ -28,3 +28,11 @@ npm test
 
 - 工具参数、审计规则、确认语义、包格式或安装入口变化时同步 `README.md`。
 - 未经用户明确要求，不执行 commit、push、tag、npm publish 或安装第三方包。
+
+## 双语与发布约定
+
+- `README.md`（英文）与 `README-zh.md`（中文）是同一份公开说明的两版，改动时同一次提交内同步，语义必须一致；公开贡献说明以两版 README 与 `doc/README.md` 的导航为准，不得只改一版。
+- 两份变更日志都在本 GitHub 仓库维护：`CHANGELOG.md` 是英文发布记录，`CHANGELOG-zh.md` 是中文日常记录；两份只写用户可感知事实，不写验证日志、内部过程或纯文档整理。
+- 日常用中文把已完成的用户可感知变化写入 `CHANGELOG-zh.md`；准备发布（release）时按版本把同一版本的用户可感知条目同步进英文 `CHANGELOG.md`，两份都保留该版本记录，并核对版本、日期与 issue 链接。
+- `README.md` 是英文默认版（npm 默认展示），`README-zh.md` 是同包附带的中文版；两份 README 与两份 changelog 都随 npm 包发布。发布前用 `npm pack --dry-run --ignore-scripts --json` 核对清单包含 `README.md`、`README-zh.md`、`CHANGELOG.md`、`CHANGELOG-zh.md`。
+- `doc/` 下的内部资料可用中文，与公开 README 的语言无关；`doc/README.md` 顶部保留英文贡献导航，中文原文留在其后。

@@ -1,5 +1,7 @@
 # 🛒 pi-marketplace
 
+English | [简体中文](./README-zh.md)
+
 [![npm version](https://img.shields.io/npm/v/pi-marketplace.svg)](https://www.npmjs.com/package/pi-marketplace)
 [![license](https://img.shields.io/npm/l/pi-marketplace.svg)](https://github.com/ssdiwu/pi-marketplace/blob/main/LICENSE)
 [![install size](https://packagephobia.now.sh/badge?p=pi-marketplace)](https://packagephobia.now.sh/result?p=pi-marketplace)
@@ -106,9 +108,28 @@ No configuration needed. All tools accept parameters at call time:
 | `name` | detail / audit / install | Package name |
 | `deepScan` | audit / install | Download and scan source (default true) |
 
-## Documentation
+## Documentation and Core Contracts
 
-- [doc/README.md](./doc/README.md) — 文档入口：现行正文、决策档案与参考证据的导航。
+| Entry point | What it answers |
+|-------------|-----------------|
+| [`AGENTS.md`](./AGENTS.md) | Agent boundary: third-party package risk, audit and confirmation semantics, verification entry points, doc and Git rules |
+| [`src/README.md`](./src/README.md) | Source responsibilities and directory boundaries |
+| [`src/tools/README.md`](./src/tools/README.md) | Which file owns which registered tool |
+| [`doc/README.md`](./doc/README.md) | Documentation navigation: current bodies, decision archive, reference evidence |
+| [`doc/决策档案/`](./doc/决策档案/) | Hard-to-reverse decisions, one file per decision |
+| [`doc/references/`](./doc/references/) | Source, impact assessment and historical proposals — not current authority |
+| [`CHANGELOG.md`](./CHANGELOG.md) | Released version history (English) |
+
+The public tool contract (parameters, audit rules, confirmation semantics) lives in this README and the implementation; the security boundary lives in `AGENTS.md`.
+
+## Contributing
+
+PRs and issues are welcome.
+
+- This README has two language versions: [`README.md`](./README.md) (English) and [`README-zh.md`](./README-zh.md) (Chinese). Change both in the same commit; the two must stay semantically in sync.
+- The contribution and collaboration rules are in [`AGENTS.md`](./AGENTS.md) and [`doc/README.md`](./doc/README.md).
+- Daily changelog entries are kept in Chinese in [`CHANGELOG-zh.md`](./CHANGELOG-zh.md) in this repository; the English [`CHANGELOG.md`](./CHANGELOG.md) is updated per version at release time with the same user-perceivable facts. Both changelogs and both READMEs ship in the npm package.
+- Do not commit, push, tag or `npm publish` without explicit approval from the maintainer.
 
 ## License
 
